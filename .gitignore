@@ -1,0 +1,7 @@
+*.pem
+*.key
+privatekey
+*.kubeconfig
+kubeconfig
+.env
+node-token

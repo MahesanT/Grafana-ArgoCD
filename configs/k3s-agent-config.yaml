@@ -1,0 +1,5 @@
+# /etc/rancher/k3s/config.yaml on each worker (create BEFORE installing the agent)
+server: https://10.60.0.2:6443
+token: PASTE_NODE_TOKEN_HERE    # from the server: sudo cat /var/lib/rancher/k3s/server/node-token
+node-ip: 10.60.0.3              # this node's own WireGuard address (use 10.60.0.1 on the hub)
+flannel-iface: wg0

@@ -1,0 +1,7 @@
+# /etc/rancher/k3s/config.yaml on the control-plane node (create BEFORE installing k3s)
+node-ip: 10.60.0.2              # this node's WireGuard address
+advertise-address: 10.60.0.2
+tls-san:
+  - 10.60.0.2
+flannel-iface: wg0              # IMPORTANT: send pod-to-pod traffic through the WireGuard tunnel
+write-kubeconfig-mode: "0644"

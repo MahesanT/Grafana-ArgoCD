@@ -1,0 +1,24 @@
+# CI stage: every push and pull request is checked before Argo CD (the CD stage) can deploy it.
+# Argo CD watches the main branch, so a failing check here keeps bad YAML out of the cluster.
+name: validate-manifests
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: YAML lint
+        run: |
+          pip install yamllint
+          yamllint -d "{extends: relaxed, rules: {line-length: disable}}" manifests configs/k3s-server-config.yaml configs/k3s-agent-config.yaml
+
+      - name: Kubernetes schema check
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          # CRDs (Argo CD Application, PrometheusRule) have no built-in schema, so they are skipped
+          ./kubeconform -strict -summary -ignore-missing-schemas manifests

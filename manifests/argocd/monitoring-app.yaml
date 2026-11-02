@@ -1,0 +1,73 @@
+# Argo CD Application: installs kube-prometheus-stack (Prometheus Operator, Prometheus, Grafana,
+# node-exporter, kube-state-metrics) from the upstream Helm chart.
+#
+# Before applying:
+#   1. Replace CHANGE_ME with your own Grafana admin password (or use a Secret, see RUNBOOK section 11).
+#   2. Replace AZURE_NODE_NAME with the node name shown by `kubectl get nodes` (the node with spare memory).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "*"          # pin a version in real environments, for example 75.x
+    helm:
+      valuesObject:
+        alertmanager:
+          enabled: false         # saves memory on a small lab
+        kubeControllerManager:
+          enabled: false         # k3s does not expose these as separate pods
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        kubeEtcd:
+          enabled: false
+        grafana:
+          adminPassword: CHANGE_ME
+          env:
+            GF_PLUGINS_PREINSTALL_DISABLED: "true"   # faster, lighter start
+          livenessProbe:
+            initialDelaySeconds: 300                 # Grafana was killed by the default probe on slow nodes
+            failureThreshold: 10
+          service:
+            type: NodePort
+            nodePort: 30300
+          resources:
+            requests:
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          nodeSelector:
+            kubernetes.io/hostname: AZURE_NODE_NAME
+        prometheus:
+          service:
+            type: NodePort
+            nodePort: 30900
+          prometheusSpec:
+            retention: 3d
+            # Pick up every ServiceMonitor, PodMonitor and PrometheusRule, not only ones with the Helm release label
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            nodeSelector:
+              kubernetes.io/hostname: AZURE_NODE_NAME
+            resources:
+              requests:
+                memory: 400Mi
+              limits:
+                memory: 1Gi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

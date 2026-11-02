@@ -1,0 +1,22 @@
+# Argo CD Application: deploys the demo app from this Git repository.
+# Replace the repoURL with your own repository if you fork this project.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MahesanT/Grafana-ArgoCD.git
+    targetRevision: main
+    path: manifests/apps/podinfo
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo
+  syncPolicy:
+    automated:
+      prune: true      # remove things deleted from Git
+      selfHeal: true   # undo manual changes made with kubectl
+    syncOptions:
+      - CreateNamespace=true

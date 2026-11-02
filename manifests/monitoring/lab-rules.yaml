@@ -1,0 +1,26 @@
+# PrometheusRule: alert rules picked up by the Prometheus Operator.
+# Apply with: kubectl apply -f manifests/monitoring/lab-rules.yaml
+# Alertmanager is disabled in this lab, so alerts appear in the Prometheus UI (Alerts page) only.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: lab-rules
+  namespace: monitoring
+spec:
+  groups:
+    - name: lab
+      rules:
+        - alert: NodeMemoryHigh
+          expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 80
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.instance }} memory above 80%"
+        - alert: PodRestarting
+          expr: increase(kube_pod_container_status_restarts_total[15m]) > 2
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ $labels.namespace }}/{{ $labels.pod }} restarted more than twice in 15 minutes"
